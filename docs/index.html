@@ -1,11 +1,963 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus-Android</title>
-    </head>
-    <body>
-        <h1>PakePlus-Android</h1>
-    </body>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#07281d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>掼蛋纪事 · 牌局手簿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   掼蛋纪事 — 苏式牌桌美学
+   墨绿呢面 · 宣纸签票 · 朱砂落笔 · 鎏金镶沿
+   ============================================================ */
+:root{
+  --felt-1:#07281d;
+  --felt-2:#0b3827;
+  --felt-3:#12472f;
+  --paper:#fdf7e8;
+  --paper-2:#f4ead2;
+  --paper-3:#ece0c2;
+  --ink:#25352b;
+  --ink-2:#41564a;
+  --muted:#8a9c8f;
+  --gold:#d9a94e;
+  --gold-deep:#a9791f;
+  --red:#c1402a;
+  --red-deep:#8e2c16;
+  --line:#d8cbab;
+  --shadow:rgba(3,14,9,.5);
+  --radius:14px;
+  --sans:'Noto Sans SC',sans-serif;
+  --disp:'ZCOOL XiaoWei',serif;
+  --serif:'Noto Serif SC',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  min-height:100dvh;
+  background:
+    radial-gradient(120% 90% at 50% -10%, var(--felt-3) 0%, transparent 55%),
+    radial-gradient(100% 80% at 80% 110%, rgba(217,169,78,.07) 0%, transparent 50%),
+    linear-gradient(160deg, var(--felt-2) 0%, var(--felt-1) 70%);
+  background-attachment:fixed;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom));
+  overflow-x:hidden;
+}
+/* 呢面织纹 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 2px,transparent 2px 4px),
+                   repeating-linear-gradient(-45deg,rgba(0,0,0,.05) 0 2px,transparent 2px 4px);
+}
+/* 颗粒噪点 */
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:60;opacity:.45;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* ---------- 页眉 ---------- */
+.app-header{
+  position:sticky;top:0;z-index:40;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 12px;
+  background:linear-gradient(180deg, rgba(7,40,29,.96) 60%, rgba(7,40,29,.82));
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(217,169,78,.28);
+  text-align:center;
+}
+.app-header::after{
+  content:"";display:block;max-width:640px;margin:10px auto 0;height:6px;
+  background-image:radial-gradient(circle, rgba(217,169,78,.7) 1.3px, transparent 1.4px);
+  background-size:14px 3px;background-position:center;background-repeat:repeat-x;
+}
+.brand{
+  font-family:var(--disp);color:var(--paper);font-size:clamp(26px,7.4vw,34px);
+  letter-spacing:.42em;text-indent:.42em;display:flex;align-items:center;justify-content:center;gap:14px;
+  text-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.brand .suit{font-size:.6em;color:var(--gold);animation:floaty 5s ease-in-out infinite}
+.brand .suit:last-child{animation-delay:2.5s}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-4px) rotate(8deg)}}
+.brand-sub{
+  margin-top:2px;font-size:10px;letter-spacing:.5em;text-indent:.5em;color:rgba(217,169,78,.75);
+  text-transform:uppercase;font-weight:500;
+}
+
+/* ---------- 布局 ---------- */
+main{position:relative;z-index:1;max-width:660px;margin:0 auto;padding:18px 16px 10px}
+.tab-panel{display:none}
+.tab-panel.on{display:block}
+
+/* ---------- 卡片 ---------- */
+.card{
+  position:relative;background:var(--paper);border-radius:var(--radius);
+  padding:18px 16px 20px;margin-bottom:16px;
+  box-shadow:0 10px 30px -6px var(--shadow), inset 0 0 0 1px rgba(37,53,43,.12);
+}
+.card::before{ /* 双线镶边 */
+  content:"";position:absolute;inset:6px;border-radius:10px;pointer-events:none;
+  border:1px solid var(--line);opacity:.8;
+}
+.card-title{
+  display:flex;align-items:baseline;gap:10px;margin-bottom:14px;
+  font-family:var(--disp);font-size:19px;letter-spacing:.18em;color:var(--ink);
+}
+.card-title .idx{
+  font-family:var(--serif);font-weight:900;font-size:11px;color:var(--paper);
+  background:var(--red);padding:2px 7px;border-radius:3px;letter-spacing:.1em;
+  transform:rotate(-3deg);box-shadow:2px 2px 0 rgba(37,53,43,.18);
+}
+.card-title .tail{margin-left:auto;font-size:10px;letter-spacing:.28em;color:var(--muted);font-family:var(--serif);font-weight:600}
+
+/* ---------- 表单元件 ---------- */
+label.flabel{display:block;font-size:11px;letter-spacing:.3em;color:var(--muted);margin:0 0 6px 2px;font-weight:500}
+input[type=date],input[type=text]{
+  width:100%;padding:11px 12px;font-family:var(--sans);font-size:15px;color:var(--ink);
+  background:var(--paper-2);border:1px solid var(--line);border-radius:9px;outline:none;
+  transition:border-color .2s, box-shadow .2s;appearance:none;
+}
+input:focus{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(217,169,78,.25)}
+.date-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px}
+.date-row .quick{
+  flex:none;font-family:var(--disp);font-size:14px;letter-spacing:.14em;color:var(--gold-deep);
+  background:transparent;border:1px dashed var(--gold-deep);border-radius:9px;padding:10px 13px;cursor:pointer;
+  transition:.2s;
+}
+.date-row .quick:hover{background:rgba(217,169,78,.12)}
+
+/* ---------- 对家卡座 ---------- */
+.teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-bottom:14px}
+.team-card{
+  background:var(--paper-2);border:1px solid var(--line);border-radius:11px;
+  padding:10px 9px;display:flex;flex-direction:column;gap:7px;
+}
+.team-head{
+  font-family:var(--disp);font-size:14px;letter-spacing:.22em;text-align:center;color:var(--ink-2);
+  padding-bottom:6px;border-bottom:1px dashed var(--line);
+}
+.team-card[data-team=a] .team-head{color:var(--red-deep)}
+.team-card[data-team=b] .team-head{color:var(--ink)}
+.slot{
+  min-height:56px;border-radius:9px;border:1px dashed var(--muted);background:rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;user-select:none;
+  transition:.18s;font-size:12px;color:var(--muted);letter-spacing:.12em;padding:4px;
+}
+.slot .ph-suit{font-size:17px;opacity:.35}
+.slot.filled{
+  border:1px solid var(--ink-2);background:var(--paper);color:var(--ink);
+  font-family:var(--disp);font-size:17px;letter-spacing:.1em;box-shadow:2px 3px 0 rgba(37,53,43,.14);
+  animation:stampIn .22s cubic-bezier(.2,1.4,.5,1);
+}
+.slot.filled .clear{font-size:11px;color:var(--muted);font-family:var(--sans);border-left:1px solid var(--line);padding-left:6px;margin-left:2px}
+@keyframes stampIn{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.vs{
+  align-self:center;font-family:var(--serif);font-weight:900;font-size:15px;color:var(--gold-deep);
+  writing-mode:vertical-rl;letter-spacing:.4em;padding:10px 0;opacity:.9;
+}
+.pool{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font-size:13.5px;padding:8px 14px;border-radius:999px;cursor:pointer;user-select:none;
+  background:var(--paper-2);border:1px solid var(--line);color:var(--ink);transition:.15s;
+}
+.chip:hover{border-color:var(--gold-deep)}
+.chip:active{transform:scale(.93)}
+.chip.used{opacity:.28;pointer-events:none;text-decoration:line-through}
+
+/* ---------- 胜方印章 ---------- */
+.winner-pick{display:flex;gap:10px;margin:16px 0 4px}
+.win-btn{
+  flex:1;position:relative;padding:13px 6px;border-radius:10px;cursor:pointer;user-select:none;
+  font-family:var(--disp);font-size:17px;letter-spacing:.3em;text-indent:.3em;
+  background:var(--paper-2);border:1.5px solid var(--line);color:var(--muted);transition:.2s;
+}
+.win-btn.sel{color:#fff;border-color:transparent}
+.win-btn[data-w=a].sel{background:linear-gradient(150deg,var(--red) 0%,var(--red-deep) 100%);box-shadow:0 6px 16px -4px rgba(142,44,22,.5);transform:rotate(-1.2deg)}
+.win-btn[data-w=b].sel{background:linear-gradient(150deg,#33302a 0%,#171512 100%);box-shadow:0 6px 16px -4px rgba(0,0,0,.5);transform:rotate(1.2deg)}
+.games-row{display:flex;align-items:center;gap:12px;margin:14px 0 2px}
+.stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper-2)}
+.stepper button{width:36px;height:38px;border:none;background:transparent;font-size:18px;color:var(--ink-2);cursor:pointer;font-family:var(--serif)}
+.stepper button:active{background:rgba(37,53,43,.08)}
+.stepper .num{min-width:34px;text-align:center;font-family:var(--serif);font-weight:900;font-size:16px}
+.games-hint{font-size:11px;color:var(--muted);letter-spacing:.06em}
+input.note{margin-top:12px;font-size:13px}
+
+/* ---------- 落笔按钮 ---------- */
+.submit-btn{
+  width:100%;margin-top:16px;padding:14px;border:none;border-radius:11px;cursor:pointer;
+  font-family:var(--disp);font-size:19px;letter-spacing:.5em;text-indent:.5em;color:var(--paper);
+  background:linear-gradient(160deg,#a03320 0%,var(--red-deep) 100%);
+  box-shadow:0 8px 22px -6px rgba(142,44,22,.55), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:.2s;position:relative;
+}
+.submit-btn::before{content:"";position:absolute;inset:4px;border:1px solid rgba(246,236,217,.4);border-radius:8px;pointer-events:none}
+.submit-btn:active{transform:translateY(2px);box-shadow:0 4px 12px -4px rgba(142,44,22,.5)}
+
+/* ---------- 筛选chips ---------- */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{
+  font-size:12.5px;padding:7px 13px;border-radius:999px;cursor:pointer;user-select:none;
+  background:rgba(253,247,232,.08);border:1px solid rgba(217,169,78,.35);color:rgba(246,236,217,.85);transition:.15s;
+}
+.fchip.on{background:var(--gold);border-color:var(--gold);color:#251a05;font-weight:700}
+.fchip:active{transform:scale(.94)}
+
+/* ---------- 排行榜 ---------- */
+.rank-list{display:flex;flex-direction:column;gap:9px}
+.rank-item{
+  display:flex;align-items:center;gap:11px;background:var(--paper);border-radius:11px;
+  padding:11px 12px;box-shadow:0 6px 16px -4px var(--shadow), inset 0 0 0 1px rgba(37,53,43,.1);
+}
+.rank-item.top1{background:linear-gradient(135deg,#fdf7e8 0%,#f7e4b8 100%);box-shadow:0 8px 20px -4px rgba(217,169,78,.35), inset 0 0 0 1.5px var(--gold)}
+.rk{
+  flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--serif);font-weight:900;font-size:14px;color:var(--ink-2);
+  background:var(--paper-3);border:1px solid var(--line);
+}
+.top1 .rk{background:var(--gold);border-color:var(--gold-deep);color:#fff}
+.top2 .rk{background:#cfcfcf;border-color:#8f8f8f;color:#fff}
+.top3 .rk{background:#d29b6e;border-color:#a36a3c;color:#fff}
+.rname{font-family:var(--disp);font-size:17px;letter-spacing:.1em;line-height:1.15}
+.rsub{font-size:10.5px;color:var(--muted);letter-spacing:.08em}
+.rbar{flex:1;min-width:0}
+.pbar{height:7px;border-radius:99px;background:rgba(37,53,43,.1);overflow:hidden;margin-top:5px}
+.pfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold-deep) 100%);width:0;transition:width .9s cubic-bezier(.22,1,.36,1)}
+.rw{flex:none;text-align:right;margin-left:4px}
+.rw .pct{font-family:var(--serif);font-weight:900;font-size:18px;color:var(--ink)}
+.rw .raw{font-size:10px;color:var(--muted);letter-spacing:.05em}
+
+.rk-head{display:flex;font-size:10px;letter-spacing:.2em;color:var(--muted);padding:0 12px 4px;justify-content:space-between}
+
+.pair-item{
+  display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px dashed var(--line);
+}
+.pair-item:last-child{border-bottom:none}
+.pair-x{font-family:var(--disp);font-size:15px;letter-spacing:.08em}
+.pair-x em{font-style:normal;color:var(--gold-deep);font-family:var(--serif);font-size:12px;padding:0 4px}
+.pair-r{margin-left:auto;font-family:var(--serif);font-weight:900;font-size:15px;color:var(--ink)}
+.pair-n{font-size:10.5px;color:var(--muted)}
+
+/* ---------- 历史 ---------- */
+.day-group{margin-bottom:18px}
+.day-head{
+  display:flex;align-items:baseline;gap:10px;color:rgba(246,236,217,.9);
+  padding:2px 4px 8px;
+}
+.day-head .d{font-family:var(--disp);font-size:17px;letter-spacing:.14em}
+.day-head .n{font-size:10.5px;color:rgba(217,169,78,.8);letter-spacing:.2em}
+.day-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(217,169,78,.5),transparent)}
+.mcard{
+  background:var(--paper);border-radius:11px;padding:12px 13px 11px;margin-bottom:9px;position:relative;
+  box-shadow:0 6px 16px -4px var(--shadow), inset 0 0 0 1px rgba(37,53,43,.1);
+}
+.mcard.win-was-a::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3.5px;border-radius:3px;background:var(--red)}
+.mcard.win-was-b::before{background:#2d2a26}
+.mline{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0}
+.mline+.mline{border-top:1px dashed var(--line)}
+.mline .side{display:flex;gap:12px;font-size:14px}
+.mline .nm{font-family:var(--disp);letter-spacing:.08em}
+.mline .nm .partner-tag{font-family:var(--sans);font-size:9.5px;color:var(--muted);display:block;letter-spacing:.15em;margin-top:1px}
+.mline.win .nm{color:var(--red-deep)}
+.win-flag{
+  flex:none;font-size:10.5px;font-family:var(--serif);font-weight:900;letter-spacing:.2em;
+  color:#fff;background:var(--red-deep);padding:3px 8px;border-radius:4px;transform:rotate(-2deg);
+}
+.win-flag.dark{background:#2d2a26;transform:rotate(2deg)}
+.lose-flag{flex:none;font-size:10px;color:var(--muted);letter-spacing:.2em}
+.mmeta{display:flex;gap:10px;margin-top:8px;padding-top:7px;border-top:1px solid var(--paper-3);font-size:10.5px;color:var(--muted);letter-spacing:.1em;align-items:center}
+.mmeta .del{margin-left:auto;cursor:pointer;color:var(--muted);border:1px solid transparent;border-radius:6px;padding:2px 8px;font-size:11px;transition:.15s;letter-spacing:.15em}
+.mmeta .del:hover{color:var(--red);border-color:rgba(193,64,42,.35);background:rgba(193,64,42,.06)}
+
+/* ---------- 人员 ---------- */
+.add-row{display:flex;gap:10px;margin-bottom:16px}
+.add-row input{flex:1}
+.add-row button{
+  flex:none;padding:0 22px;border:none;border-radius:9px;cursor:pointer;
+  font-family:var(--disp);font-size:16px;letter-spacing:.2em;text-indent:.2em;color:var(--paper);
+  background:linear-gradient(160deg,#1d4a37,#0d3324);box-shadow:0 6px 16px -5px rgba(13,51,36,.6);
+}
+.add-row button:active{transform:translateY(2px)}
+.p-item{
+  display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px dashed var(--line);
+}
+.p-item:last-child{border:none}
+.p-avatar{
+  flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--disp);font-size:17px;color:var(--paper);
+  background:radial-gradient(circle at 32% 28%,#3c6a52,#1d4433 70%);
+  box-shadow:inset 0 0 0 1.5px rgba(217,169,78,.5), 0 3px 8px rgba(3,14,9,.25);
+}
+.p-name{font-family:var(--disp);font-size:17px;letter-spacing:.1em}
+.p-stat{margin-left:auto;text-align:right}
+.p-stat b{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--red-deep)}
+.p-stat span{display:block;font-size:10px;color:var(--muted);letter-spacing:.15em}
+.p-del{flex:none;width:30px;height:30px;border-radius:8px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:15px;transition:.15s}
+.p-del:hover{color:var(--red);background:rgba(193,64,42,.08)}
+.data-ops{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.op-btn{
+  flex:1;min-width:100px;padding:10px 8px;font-size:12.5px;letter-spacing:.15em;cursor:pointer;
+  border-radius:9px;border:1px solid var(--line);background:var(--paper-2);color:var(--ink-2);font-family:var(--sans);
+}
+.op-btn:active{transform:scale(.97)}
+
+/* ---------- 空态 ---------- */
+.empty{
+  text-align:center;padding:34px 10px;color:var(--muted);
+}
+.empty .esuit{display:block;font-size:30px;color:rgba(217,169,78,.4);margin-bottom:10px;animation:floaty 6s ease-in-out infinite}
+.empty .et{font-family:var(--disp);font-size:16px;letter-spacing:.25em;margin-bottom:6px}
+.empty .ed{font-size:11.5px;letter-spacing:.1em;line-height:1.9}
+
+/* ---------- 页签栏 ---------- */
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  display:flex;justify-content:center;
+  padding:8px max(10px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(7,40,29,.75),rgba(7,40,29,.98));
+  backdrop-filter:blur(12px);border-top:1px solid rgba(217,169,78,.3);
+}
+.tabbar::before{content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:70%;height:5px;
+  background-image:radial-gradient(circle, rgba(217,169,78,.45) 1px, transparent 1.3px);background-size:12px 2px;background-repeat:repeat-x}
+.tabBtn{
+  width:88px;padding:6px 4px 4px;border:none;background:transparent;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:rgba(246,236,217,.55);font-family:var(--sans);font-size:10.5px;letter-spacing:.2em;text-indent:.2em;
+  transition:.25s;border-radius:10px;
+}
+.tabBtn .ticon{font-size:20px;line-height:1.2;transition:.25s;font-family:var(--serif)}
+.tabBtn.on{color:var(--gold)}
+.tabBtn.on .ticon{transform:translateY(-3px) scale(1.12);text-shadow:0 0 14px rgba(217,169,78,.65)}
+.tabBtn:active{transform:scale(.92)}
+
+/* ---------- 动效 ---------- */
+.tab-panel.on .reveal{animation:rise .55s cubic-bezier(.22,1,.36,1) both}
+.tab-panel.on .reveal:nth-child(2){animation-delay:.06s}
+.tab-panel.on .reveal:nth-child(3){animation-delay:.12s}
+.tab-panel.on .reveal:nth-child(4){animation-delay:.18s}
+.tab-panel.on .reveal:nth-child(5){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- Toast / 弹窗 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom));z-index:80;
+  transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
+  padding:10px 22px;border-radius:999px;font-size:13.5px;letter-spacing:.1em;
+  background:rgba(13,30,22,.95);color:var(--paper);border:1px solid rgba(217,169,78,.5);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);transition:.3s cubic-bezier(.22,1,.36,1);
+  white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{border-color:rgba(193,64,42,.8);background:rgba(120,28,14,.95)}
+#toast.ok{border-color:var(--gold)}
+.modal-mask{
+  position:fixed;inset:0;z-index:90;display:none;place-items:center;padding:24px;
+  background:rgba(4,17,12,.6);backdrop-filter:blur(4px);
+}
+.modal-mask.on{display:grid}
+.modal{
+  position:relative;
+  width:100%;max-width:340px;background:var(--paper);border-radius:14px;padding:24px 20px 18px;text-align:center;
+  animation:pop .3s cubic-bezier(.2,1.4,.4,1) both;
+  box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 0 0 1px rgba(37,53,43,.12);
+}
+.modal::before{content:"";position:absolute;inset:7px;border-radius:9px;border:1px solid var(--line);pointer-events:none}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-family:var(--disp);font-size:19px;letter-spacing:.2em;margin-bottom:8px}
+.modal p{font-size:13px;color:var(--ink-2);line-height:1.8;margin-bottom:18px}
+.modal .mrow{display:flex;gap:10px}
+.modal .mrow button{flex:1;padding:10px;border-radius:9px;cursor:pointer;font-size:14px;letter-spacing:.15em;font-family:var(--sans)}
+.btn-ghost{border:1px solid var(--line);background:transparent;color:var(--ink-2)}
+.btn-danger{border:none;background:linear-gradient(160deg,var(--red),var(--red-deep));color:#fff}
+.hidden{display:none!important}
+
+/* 小屏微调 */
+@media (max-width:380px){
+  .teams{gap:5px}
+  .brand{letter-spacing:.3em;text-indent:.3em}
+  .rw .pct{font-size:16px}
+  .mline .side{gap:8px}
+}
+@media (min-width:700px){
+  main{padding-top:26px}
+}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-thumb{background:rgba(217,169,78,.3);border-radius:9px}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="suit">♠</span>
+    <span>掼蛋纪事</span>
+    <span class="suit">♥</span>
+  </div>
+  <div class="brand-sub">GUANDAN CHRONICLE · 拂柳台手簿</div>
+</header>
+
+<main>
+  <!-- ============ 录入 ============ -->
+  <section id="tab-record" class="tab-panel on">
+    <div class="card reveal">
+      <div class="card-title"><span class="idx">记</span>今日牌局<span class="tail">FOUR SEATS</span></div>
+
+      <div class="date-row">
+        <div style="flex:1">
+          <label class="flabel" for="m-date">对局日期</label>
+          <input type="date" id="m-date">
+        </div>
+        <button type="button" class="quick" id="btn-today">就在今日</button>
+      </div>
+
+      <div class="teams">
+        <div class="team-card" data-team="a">
+          <div class="team-head">甲 · 上了一对门规</div>
+          <div class="slot" data-team="a" data-slot="0"><span class="ph-suit">♢</span><span>点我入座</span></div>
+          <div class="slot" data-team="a" data-slot="1"><span class="ph-suit">♠</span><span>点我入座</span></div>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team-card" data-team="b">
+          <div class="team-head">乙 · 隔座对家</div>
+          <div class="slot" data-team="b" data-slot="0"><span class="ph-suit">♣</span><span>点我入座</span></div>
+          <div class="slot" data-team="b" data-slot="1"><span class="ph-suit">♥</span><span>点我入座</span></div>
+        </div>
+      </div>
+
+      <label class="flabel">牌手名录 · 点选入座（对家即队友）</label>
+      <div class="pool" id="player-pool"></div>
+
+      <div class="winner-pick">
+        <div class="win-btn" data-w="a">甲 家 胜</div>
+        <div class="win-btn" data-w="b">乙 家 胜</div>
+      </div>
+
+      <div class="games-row">
+        <label class="flabel" style="margin:0">局数</label>
+        <div class="stepper">
+          <button type="button" id="g-minus">−</button>
+          <span class="num" id="g-num">1</span>
+          <button type="button" id="g-plus">＋</button>
+        </div>
+        <span class="games-hint">一场内跑了多少副，仅作备忘</span>
+      </div>
+
+      <input type="text" class="note" id="m-note" maxlength="40" placeholder="备注（可留空）：如「绝桃 Heath 逆转」">
+
+      <button class="submit-btn" id="btn-save">落笔记局</button>
+    </div>
+  </section>
+
+  <!-- ============ 排行 ============ -->
+  <section id="tab-rank" class="tab-panel">
+    <div class="reveal">
+      <div class="filter-row" id="rank-range">
+        <span class="fchip" data-r="7">近七日</span>
+        <span class="fchip" data-r="30">近卅日</span>
+        <span class="fchip on" data-r="0">自始至终</span>
+      </div>
+
+      <div class="card" style="padding-bottom:12px">
+        <div class="card-title"><span class="idx">榜</span>胜率榜<span class="tail">HALL OF FAME</span></div>
+        <div class="rk-head"><span>牌手 · 出场</span><span>胜率 · 战绩</span></div>
+        <div class="rank-list" id="rank-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="idx">契</span>双人对契<span class="tail">BEST PARTNERS</span></div>
+        <div id="pair-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 历史 ============ -->
+  <section id="tab-history" class="tab-panel">
+    <div class="reveal">
+      <div class="filter-row" id="hist-filter"></div>
+      <div id="hist-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ 人员 ============ -->
+  <section id="tab-players" class="tab-panel">
+    <div class="card reveal">
+      <div class="card-title"><span class="idx">录</span>掼蛋人名录<span class="tail">ROSTER</span></div>
+      <div class="add-row">
+        <input type="text" id="p-name" maxlength="12" placeholder="牌手姓名，至多十二字">
+        <button id="btn-add-player">录入</button>
+      </div>
+      <div id="player-list"></div>
+    </div>
+    <div class="card reveal">
+      <div class="card-title"><span class="idx">藏</span>手簿存档<span class="tail">LEDGER VAULT</span></div>
+      <div class="data-ops">
+        <button class="op-btn" id="btn-export">导出 JSON 藏卷</button>
+        <button class="op-btn" id="btn-import">导入 JSON 卷宗</button>
+        <button class="op-btn" id="btn-clear" style="color:var(--red);border-color:rgba(193,64,42,.4)">焚毁全部记录</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" class="hidden">
+      <p style="font-size:10.5px;color:var(--muted);letter-spacing:.08em;margin-top:12px;line-height:1.9">
+        数据均存于本机浏览器（localStorage），换设备或清浏览器缓存前请先导出 == 建议偶尔带走一份藏卷。
+      </p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="tabBtn on" data-tab="record"><span class="ticon">♠</span>记局</button>
+  <button class="tabBtn" data-tab="rank"><span class="ticon">♦</span>胜率榜</button>
+  <button class="tabBtn" data-tab="history"><span class="ticon">♣</span>战册</button>
+  <button class="tabBtn" data-tab="players"><span class="ticon">♥</span>牌友</button>
+</nav>
+
+<div id="toast"></div>
+<div class="modal-mask" id="modal-mask">
+  <div class="modal">
+    <h3 id="modal-title">确认</h3>
+    <p id="modal-text"></p>
+    <div class="mrow">
+      <button class="btn-ghost" id="modal-cancel">且慢</button>
+      <button class="btn-danger" id="modal-ok">定了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   掼蛋纪事 —— 数据与交互
+   存储：localStorage  =>  gd_players / gd_matches
+   ============================================================ */
+'use strict';
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const LS_P = 'gd_players', LS_M = 'gd_matches';
+const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+let players = [];   // {id, name, createdAt}
+let matches = [];   // {id, date, a:[id,id], b:[id,id], an:[n,n], bn:[n,n], winner:'a'|'b', games, note, createdAt}
+
+/* ---------- 存取 ---------- */
+function load(){
+  try{ players = JSON.parse(localStorage.getItem(LS_P)) || []; }catch{ players = []; }
+  try{ matches = JSON.parse(localStorage.getItem(LS_M)) || []; }catch{ matches = []; }
+}
+function save(){
+  localStorage.setItem(LS_P, JSON.stringify(players));
+  localStorage.setItem(LS_M, JSON.stringify(matches));
+}
+
+/* ---------- 小工具 ---------- */
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmtDate = s => {
+  const [,y,m,d] = s.match(/^(\d{4})-(\d{2})-(\d{2})$/) || [];
+  if(!m) return s;
+  const wd = ['日','一','二','三','四','五','六'][new Date(+y, +m-1, +d).getDay()];
+  return `${+m}月${+d}日 · 周${wd}`;
+};
+const within  = (dateStr, days) => days ? dateStr >= shiftDate(-days) : true;
+function shiftDate(days){
+  const d = new Date(); d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* toast */
+let toastTimer;
+function toast(msg, type=''){
+  const t = $('#toast'); t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = '', 2200);
+}
+
+/* confirm 弹窗 */
+let modalCb = null;
+function confirmBox(title, text, cb){
+  $('#modal-title').textContent = title;
+  $('#modal-text').textContent  = text;
+  modalCb = cb;
+  $('#modal-mask').classList.add('on');
+}
+$('#modal-cancel').onclick = () => $('#modal-mask').classList.remove('on');
+$('#modal-mask').addEventListener('click', e => { if(e.target.id === 'modal-mask') $('#modal-mask').classList.remove('on'); });
+$('#modal-ok').onclick = () => {
+  $('#modal-mask').classList.remove('on');
+  if(modalCb){ const cb = modalCb; modalCb = null; cb(); }
+};
+
+/* ============================================================
+   录入：牌座选择状态
+   ============================================================ */
+const seats = { a:[null,null], b:[null,null] };   // 存 playerId
+let winPick = null;
+let gamesNum = 1;
+
+function seatCount(){ return (seats.a[0]!==null)+(seats.a[1]!==null)+(seats.b[0]!==null)+(seats.b[1]!==null); }
+
+function renderPool(){
+  const box = $('#player-pool');
+  if(!players.length){
+    box.innerHTML = `<div class="empty" style="padding:18px"><span class="esuit">♢</span>
+      <div class="et">尚无牌手</div><div class="ed">先到「牌友」一页，录入来的掼蛋人</div></div>`;
+    return;
+  }
+  const used = new Set([...seats.a, ...seats.b].filter(Boolean));
+  box.innerHTML = players.map(p =>
+    `<span class="chip ${used.has(p.id)?'used':''}" data-id="${p.id}">${esc(p.name)}</span>`
+  ).join('');
+  box.querySelectorAll('.chip').forEach(chip => chip.onclick = () => placePlayer(chip.dataset.id));
+}
+
+function placePlayer(id){
+  for(const t of ['a','b']) for(let i=0;i<2;i++){
+    if(seats[t][i] === null){ seats[t][i] = id; syncSeats(); return; }
+  }
+  toast('四座已满，点座上人可挪开', 'err');
+}
+
+function syncSeats(){
+  $$('.slot').forEach(slot => {
+    const id = seats[slot.dataset.team][+slot.dataset.slot];
+    const p = players.find(x => x.id === id);
+    if(p){
+      slot.classList.add('filled');
+      slot.innerHTML = `<span>${esc(p.name)}</span><span class="clear">挪开 ✕</span>`;
+    }else{
+      slot.classList.remove('filled');
+      const suits = {a0:'♢',a1:'♠',b0:'♣',b1:'♥'};
+      slot.innerHTML = `<span class="ph-suit">${suits[slot.dataset.team+slot.dataset.slot]}</span><span>点我入座</span>`;
+    }
+  });
+  renderPool();
+}
+
+$$('.slot').forEach(slot => slot.onclick = () => {
+  if(seats[slot.dataset.team][+slot.dataset.slot] !== null){
+    seats[slot.dataset.team][+slot.dataset.slot] = null;
+    syncSeats();
+  }
+});
+
+/* 胜方 */
+$$('.win-btn').forEach(btn => btn.onclick = () => {
+  if(seatCount() < 4){ toast('先请四位牌手入座', 'err'); return; }
+  winPick = btn.dataset.w;
+  $$('.win-btn').forEach(b => b.classList.toggle('sel', b === btn));
+});
+
+/* 局数 */
+$('#g-minus').onclick = () => { gamesNum = Math.max(1, gamesNum-1); $('#g-num').textContent = gamesNum; };
+$('#g-plus').onclick  = () => { gamesNum = Math.min(99, gamesNum+1); $('#g-num').textContent = gamesNum; };
+$('#btn-today').onclick = () => { $('#m-date').value = today(); toast('已记为今日'); };
+
+/* 保存 */
+$('#btn-save').onclick = () => {
+  const date = $('#m-date').value || today();
+  const ids = [...seats.a, ...seats.b];
+  if(ids.some(x => !x)) return toast('四座未坐满', 'err');
+  if(new Set(ids).size !== 4) return toast('同一牌手不得同坐两座', 'err');
+  if(!winPick) return toast('尚未点出胜家', 'err');
+
+  const pmap = new Map(players.map(p => [p.id, p.name]));
+  matches.unshift({
+    id: uid() + 'm', date,
+    a:[...seats.a], b:[...seats.b],
+    an: seats.a.map(i => pmap.get(i) || '?'),
+    bn: seats.b.map(i => pmap.get(i) || '?'),
+    winner: winPick, games: gamesNum,
+    note: $('#m-note').value.trim(),
+    createdAt: Date.now()
+  });
+  save();
+  /* 清空表单 */
+  seats.a = [null,null]; seats.b = [null,null]; winPick = null; gamesNum = 1;
+  $('#g-num').textContent = '1'; $('#m-note').value = '';
+  $$('.win-btn').forEach(b => b.classList.remove('sel'));
+  renderAll();
+  toast('记下了一局 — 朱红落笔讫', 'ok');
+};
+
+$('#m-date').value = today();
+
+/* ============================================================
+   统计
+   ============================================================ */
+function computeStats(days){
+  const st = new Map(); // id -> {w,l,pairs: Map(pairKey -> {w,l})}
+  players.forEach(p => st.set(p.id, {w:0, l:0, pairs:new Map()}));
+  const list = matches.filter(m => within(m.date, days));
+  for(const m of list){
+    for(const team of ['a','b']){
+      const ids = m[team];
+      for(let i=0;i<2;i++){
+        const row = st.get(ids[i]); if(!row) continue;
+        if(m.winner === team) row.w++; else row.l++;
+        const pa = ids[1-i];
+        const key = [ids[i], pa].sort().join('|');
+        if(ids[i] < pa){          // 每对搭档的全局战绩只记一次（记在 id 较小一方）
+          const pr = row.pairs.get(key) || {w:0,l:0};
+          if(m.winner === team) pr.w++; else pr.l++;
+          row.pairs.set(key, pr);
+        }
+      }
+    }
+  }
+  return {st, list};
+}
+function pairInfo(st){
+  const agg = new Map(); // pairKey -> {a,b,w,l}
+  st.forEach((row, id) => {
+    row.pairs.forEach((pr, key) => {
+      const cur = agg.get(key) || (()=>{ const [x,y]=key.split('|'); return {a:x,b:y,w:0,l:0}; })();
+      cur.w += pr.w; cur.l += pr.l; agg.set(key, cur);
+    });
+  });
+  return [...agg.values()].filter(v => v.w + v.l > 0)
+    .sort((x,y) => (y.w/(y.w+y.l)) - (x.w/(x.w+x.l)) || (y.w+y.l) - (x.w+x.l));
+}
+
+/* ============================================================
+   排行
+   ============================================================ */
+let rankDays = 0;
+$('#rank-range').addEventListener('click', e => {
+  const chip = e.target.closest('.fchip'); if(!chip) return;
+  rankDays = +chip.dataset.r;
+  $$('#rank-range .fchip').forEach(c => c.classList.toggle('on', c === chip));
+  renderRank();
+});
+
+function englishOrdinal(n){ return ['','I','II','III','IV','V','VI','VII','VIII','IX','X'][n] || n; }
+
+function renderRank(){
+  const {st} = computeStats(rankDays);
+  const rows = players.map(p => {
+    const r = st.get(p.id);
+    const g = r.w + r.l;
+    return {p, g, w:r.w, l:r.l, rate: g ? r.w/g : -1};
+  }).filter(x => x.g > 0)
+    .sort((a,b) => b.rate - a.rate || b.g - a.g || a.p.name.localeCompare(b.p.name, 'zh'));
+
+  const listEl = $('#rank-list');
+  if(!players.length){
+    listEl.innerHTML = `<div class="empty"><span class="esuit">♦</span><div class="et">榜上无名</div>
+      <div class="ed">录入牌手并战过几局<br>胜率榜自会以朱金为凭</div></div>`;
+  }else if(!rows.length){
+    listEl.innerHTML = `<div class="empty"><span class="esuit">♦</span><div class="et">虚位以待</div>
+      <div class="ed">${rankDays ? '此时间范围内' : '尚'}无对局记录</div></div>`;
+  }else{
+    listEl.innerHTML = rows.map((x, i) => {
+      const pct = Math.round(x.rate * 100);
+      return `<div class="rank-item ${i===0?'top1':i===1?'top2':i===2?'top3':''}">
+        <div class="rk">${englishOrdinal(i+1)}</div>
+        <div class="rbar">
+          <div class="rname">${esc(x.p.name)}</div>
+          <div class="rsub">出场 ${x.g} · 胜${x.w} 负${x.l}</div>
+          <div class="pbar"><div class="pfill" data-w="${pct}"></div></div>
+        </div>
+        <div class="rw"><div class="pct">${pct}<small style="font-size:11px">%</small></div><div class="raw">WIN RATE</div></div>
+      </div>`;
+    }).join('');
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      listEl.querySelectorAll('.pfill').forEach(b => b.style.width = b.dataset.w + '%')));
+  }
+
+  /* 双人对契 */
+  const pairs = pairInfo(computeStats(0).st);   // 对契榜始终看全部
+  const nameOf = id => (players.find(p => p.id === id) || {name:'已隐名'}).name;
+  const top = pairs.slice(0, 6);
+  $('#pair-list').innerHTML = top.length ? top.map((v,i) => `
+    <div class="pair-item">
+      <div class="rk" style="width:24px;height:24px;font-size:11px">${englishOrdinal(i+1)}</div>
+      <div class="pair-x">${esc(nameOf(v.a))}<em>×</em>${esc(nameOf(v.b))}<br><span class="pair-n">同袍 ${v.w+v.l} 局 · 胜${v.w}</span></div>
+      <div class="pair-r" style="flex:none;text-align:right">${Math.round(v.w/(v.w+v.l)*100)}<small style="font-size:10px">%</small></div>
+    </div>`).join('')
+    : `<div class="empty" style="padding:20px"><div class="et">尚无同袍之契</div><div class="ed">在「记局」中为四座点人后自会显现</div></div>`;
+}
+
+/* ============================================================
+   战册
+   ============================================================ */
+let histFilterId = 'all';
+$('#hist-filter').addEventListener('click', e => {
+  const chip = e.target.closest('.fchip'); if(!chip) return;
+  histFilterId = chip.dataset.id;
+  $$('#hist-filter .fchip').forEach(c => c.classList.toggle('on', c === chip));
+  renderHistory();
+});
+
+function renderHistory(){
+  const fEl = $('#hist-filter');
+  fEl.innerHTML = `<span class="fchip ${histFilterId==='all'?'on':''}" data-id="all">全众</span>` +
+    players.map(p => `<span class="fchip ${histFilterId===p.id?'on':''}" data-id="${p.id}">${esc(p.name)}</span>`).join('');
+
+  const list = matches.filter(m => histFilterId === 'all' || m.a.includes(histFilterId) || m.b.includes(histFilterId));
+  const box = $('#hist-list');
+
+  if(!matches.length){
+    box.innerHTML = `<div class="card"><div class="empty"><span class="esuit">♣</span>
+      <div class="et">战册空空</div><div class="ed">一页未写<br>去「记局」落下第一笔朱红</div></div></div>`;
+    return;
+  }
+  if(!list.length){
+    box.innerHTML = `<div class="card"><div class="empty"><span class="esuit">♣</span>
+      <div class="et">查无此人</div><div class="ed">该牌手暂无战册记录</div></div></div>`;
+    return;
+  }
+
+  const byDate = new Map();
+  list.forEach(m => { (byDate.get(m.date) || byDate.set(m.date, []).get(m.date)).push(m); });
+
+  const nameSnap = (m, side, i) => (m[side + 'n'] && m[side + 'n'][i]) || (players.find(p => p.id === m[side][i]) || {name:'已隐名'}).name;
+  const pname = id => (players.find(p => p.id === id) || {name:'已隐名'}).name;
+
+  box.innerHTML = [...byDate.entries()].sort((a,b) => b[0].localeCompare(a[0])).map(([date, arr]) => `
+    <div class="day-group">
+      <div class="day-head"><span class="d">${fmtDate(date)}</span><span class="n">${arr.length} 场</span></div>
+      ${arr.map(m => {
+        const winA = m.winner === 'a';
+        return `<div class="mcard ${winA?'win-was-a':'win-was-b'}">
+          <div class="mline ${winA?'win':''}">
+            <div class="side"><span class="nm">${esc(nameSnap(m,'a',0))}<span class="partner-tag">同袍 ${esc(nameSnap(m,'a',1))}</span></span></div>
+            ${winA ? '<span class="win-flag">胜</span>' : '<span class="lose-flag">败</span>'}
+          </div>
+          <div class="mline ${!winA?'win':''}">
+            <div class="side"><span class="nm">${esc(nameSnap(m,'b',0))}<span class="partner-tag">同袍 ${esc(nameSnap(m,'b',1))}</span></span></div>
+            ${!winA ? '<span class="win-flag dark">胜</span>' : '<span class="lose-flag">败</span>'}
+          </div>
+          <div class="mmeta">
+            <span>${m.games || 1} 副牌</span>
+            ${m.note ? `<span>「${esc(m.note)}」</span>` : ''}
+            <span class="del" data-del="${m.id}">涂销</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+
+  box.querySelectorAll('[data-del]').forEach(d => d.onclick = () => {
+    confirmBox('涂销此局', '将把这一局从战册中划去，胜率与排行随之重算。此举不可逆。', () => {
+      matches = matches.filter(x => x.id !== d.dataset.del);
+      save(); renderAll(); toast('已涂销一局');
+    });
+  });
+}
+
+/* ============================================================
+   牌友
+   ============================================================ */
+function renderPlayers(){
+  const {st} = computeStats(0);
+  const box = $('#player-list');
+  if(!players.length){
+    box.innerHTML = `<div class="empty"><span class="esuit">♥</span><div class="et">名录空白</div>
+      <div class="ed">录下第一位掼蛋人<br>牌桌从此有了名姓</div></div>`;
+    return;
+  }
+  box.innerHTML = players.map(p => {
+    const r = st.get(p.id) || {w:0,l:0};
+    const g = r.w + r.l;
+    const rate = g ? Math.round(r.w / g * 100) : null;
+    return `<div class="p-item">
+      <div class="p-avatar">${esc(p.name.slice(0,1))}</div>
+      <div class="p-name">${esc(p.name)}</div>
+      <div class="p-stat"><b>${rate===null ? '—' : rate + '%'}</b><span>${g ? `出场 ${g} · 胜${r.w} 负${r.l}` : '尚未出场'}</span></div>
+      <button class="p-del" data-del="${p.id}" title="除名">✕</button>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const p = players.find(x => x.id === b.dataset.del);
+    const g = (st.get(p.id) ? st.get(p.id).w + st.get(p.id).l : 0);
+    confirmBox('除名牌手', `「${p.name}」将从名录中除名${g ? `，其 ${g} 场历史战绩一并让出榜位，但旧局册仍留其姓名痕` : ''}。确定？`, () => {
+      players = players.filter(x => x.id !== p.id);
+      save(); renderAll(); toast(`「${p.name}」已除名`);
+    });
+  });
+}
+
+$('#btn-add-player').onclick = () => {
+  const inp = $('#p-name');
+  const name = inp.value.trim();
+  if(!name) return toast('先写个姓名', 'err');
+  if(players.some(p => p.name === name)) return toast('此名已上过名录', 'err');
+  players.push({id: uid(), name, createdAt: Date.now()});
+  save(); inp.value = ''; renderAll();
+  toast(`「${name}」入了名录`, 'ok');
+};
+$('#p-name').addEventListener('keydown', e => { if(e.key === 'Enter') $('#btn-add-player').click(); });
+
+/* ---------- 存档操作 ---------- */
+$('#btn-export').onclick = () => {
+  const blob = new Blob([JSON.stringify({version:1, players, matches}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `掼蛋纪事-藏卷-${today()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('藏卷已带出', 'ok');
+};
+$('#btn-import').onclick = () => $('#import-file').click();
+$('#import-file').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if(!Array.isArray(d.players) || !Array.isArray(d.matches)) throw 0;
+      confirmBox('导入卷宗', `这将替换现有全部数据：${d.players.length} 位牌手、${d.matches.length} 局记录。确定？`, () => {
+        players = d.players; matches = d.matches; save(); renderAll(); toast('卷宗已收讫', 'ok');
+      });
+    }catch{ toast('卷宗式样不对，读不了', 'err'); }
+  };
+  rd.readAsText(f);
+  e.target.value = '';
+};
+$('#btn-clear').onclick = () => confirmBox('焚毁全部记录', '全部牌手与战册将化为灰烬，从此无凭无据。真的要烧吗？', () => {
+  players = []; matches = []; save(); renderAll(); toast('一炬焚尽', 'err');
+});
+
+/* ============================================================
+   页签与总渲染
+   ============================================================ */
+function safeRender(name, fn){
+  try{ fn(); }
+  catch(err){ console.error('渲染「' + name + '」出错:', err); }
+}
+function renderAll(){
+  safeRender('记局',   syncSeats);
+  safeRender('胜率榜', renderRank);
+  safeRender('战册',   renderHistory);
+  safeRender('牌友',   renderPlayers);
+}
+
+$$('.tabBtn').forEach(btn => btn.onclick = () => {
+  $$('.tabBtn').forEach(b => b.classList.toggle('on', b === btn));
+  $$('.tab-panel').forEach(p => p.classList.toggle('on', p.id === 'tab-' + btn.dataset.tab));
+  renderAll();   // 每次切页签都全量重渲，杜绝旧数据
+});
+
+load();
+renderAll();
+
+/* 跨浏览器标签页 & 手机切后台回来时的同步 */
+window.addEventListener('storage', e => {
+  if(e.key === LS_P || e.key === LS_M){ load(); renderAll(); }
+});
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden){ load(); renderAll(); }
+});
+
+/* ---------- PWA：可安装应用 + 离线可用 ---------- */
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
+</script>
+</body>
 </html>
